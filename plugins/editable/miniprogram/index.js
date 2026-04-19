@@ -459,7 +459,7 @@ function Editable (vm) {
                 children: []
               }]
               for (let j = 0; j < item.children.length; j++) {
-                item.children[j].attrs.style = item.children[j].attrs.style.replace(/grid-[^;]+;*/g, '')
+                item.children[j].attrs.style = item.children[j].attrs.style.replace(/grid-[^;]+;*/g, '').replace(/justify-content[^;]+;*/g, '').replace(';display:flex;flex-direction:column', '')
                 if (item.children[j].r !== children.length) {
                   children.push({
                     name: 'tr',
