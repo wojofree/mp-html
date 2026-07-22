@@ -181,6 +181,21 @@ console.log('11')
   expect(comp.data.nodes[0].attrs.style.includes('border:1px solid')).toBe(true)
   expect(comp.data.nodes[0].attrs.style.includes('grid-template-columns:121.44px minmax(0,1fr)')).toBe(true)
 
+  // 仅将最小 max-width 断点合并到基础样式
+  comp.instance.setContent(`<style>
+    .media-box { display:grid;grid-template-columns:300px 1fr;color:black;padding:10px; }
+    @media (max-width: 900px) { .media-box { background:red;gap:24px; } }
+    @media screen and (max-width: 560px) { .media-box { grid-template-columns:1fr;color:green; } }
+    @media print { .media-box { display:none; } }
+  </style><div class="media-box">mobile media</div>`)
+  expect(comp.data.nodes[0].attrs.style.includes('display:grid')).toBe(true)
+  expect(comp.data.nodes[0].attrs.style.includes('padding:5.52px')).toBe(true)
+  expect(comp.data.nodes[0].attrs.style.includes('grid-template-columns:1fr')).toBe(true)
+  expect(comp.data.nodes[0].attrs.style.includes('color:green')).toBe(true)
+  expect(comp.data.nodes[0].attrs.style.includes('background:red')).toBe(false)
+  expect(comp.data.nodes[0].attrs.style.includes('gap:13.248px')).toBe(false)
+  expect(comp.data.nodes[0].attrs.style.includes('display:none')).toBe(false)
+
   // 长内容测试
   let content = '<div>1</div>'.repeat(50) + '<div>'
   for (let i = 0; i < 50; i++) {

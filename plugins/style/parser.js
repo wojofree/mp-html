@@ -16,8 +16,157 @@ function Parser () {
  * @param {string} content css 内容
  */
 Parser.prototype.parse = function (content) {
-  new Lexer(this).parse(content)
+  new Lexer(this).parse(mergeSmallestMedia(content))
   return this.styles
+}
+
+/**
+ * @description 保留基础样式，并仅合并最小的 max-width 断点
+ * @param {string} content css 内容
+ * @returns {string} 合并后的 css
+ */
+function mergeSmallestMedia (content) {
+  let base = ''
+  const media = []
+  let start = 0
+  let i = 0
+  let quote
+  let comment = false
+
+  while (i < content.length) {
+    const c = content[i]
+    if (comment) {
+      if (c === '*' && content[i + 1] === '/') {
+        comment = false
+        i += 2
+      } else {
+        i++
+      }
+      continue
+    }
+    if (quote) {
+      if (c === '\\') {
+        i += 2
+      } else {
+        if (c === quote) quote = undefined
+        i++
+      }
+      continue
+    }
+    if (c === '/' && content[i + 1] === '*') {
+      comment = true
+      i += 2
+      continue
+    }
+    if (c === '"' || c === "'") {
+      quote = c
+      i++
+      continue
+    }
+    if (content.substr(i, 6).toLowerCase() === '@media' && !/[\w-]/.test(content[i + 6] || '')) {
+      const block = readMediaBlock(content, i + 6)
+      if (block) {
+        base += content.substring(start, i)
+        const match = block.query.match(/max-width\s*:\s*(\d+(?:\.\d+)?)px/i)
+        if (match && !/\bprint\b/i.test(block.query)) {
+          media.push({
+            width: Number(match[1]),
+            content: block.content
+          })
+        }
+        i = block.end
+        start = i
+        continue
+      }
+    }
+    i++
+  }
+
+  base += content.substring(start)
+  if (!media.length) return base
+
+  let width = media[0].width
+  for (i = 1; i < media.length; i++) {
+    if (media[i].width < width) width = media[i].width
+  }
+  for (i = 0; i < media.length; i++) {
+    if (media[i].width === width) base += '\n' + media[i].content
+  }
+  return base
+}
+
+/**
+ * @description 读取 media 查询及其完整块
+ * @param {string} content css 内容
+ * @param {number} start @media 后的位置
+ * @returns {object|undefined} media 块
+ */
+function readMediaBlock (content, start) {
+  let i = start
+  let quote
+  let comment = false
+  let open = -1
+
+  for (; i < content.length; i++) {
+    const c = content[i]
+    if (comment) {
+      if (c === '*' && content[i + 1] === '/') {
+        comment = false
+        i++
+      }
+      continue
+    }
+    if (quote) {
+      if (c === '\\') i++
+      else if (c === quote) quote = undefined
+      continue
+    }
+    if (c === '/' && content[i + 1] === '*') {
+      comment = true
+      i++
+    } else if (c === '"' || c === "'") {
+      quote = c
+    } else if (c === '{') {
+      open = i
+      break
+    } else if (c === ';') {
+      return
+    }
+  }
+  if (open < 0) return
+
+  let floor = 1
+  quote = undefined
+  comment = false
+  for (i = open + 1; i < content.length; i++) {
+    const c = content[i]
+    if (comment) {
+      if (c === '*' && content[i + 1] === '/') {
+        comment = false
+        i++
+      }
+      continue
+    }
+    if (quote) {
+      if (c === '\\') i++
+      else if (c === quote) quote = undefined
+      continue
+    }
+    if (c === '/' && content[i + 1] === '*') {
+      comment = true
+      i++
+    } else if (c === '"' || c === "'") {
+      quote = c
+    } else if (c === '{') {
+      floor++
+    } else if (c === '}' && !--floor) {
+      return {
+        query: content.substring(start, open).trim(),
+        content: content.substring(open + 1, i),
+        end: i + 1
+      }
+    }
+  }
 }
 
 /**

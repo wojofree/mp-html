@@ -83,6 +83,8 @@ white-space: pre-line; /* 保留换行符 */
 
 ?> 例如窗口宽度为 *390px*、*design-width* 为 *750* 时，*padding:32px* 会渲染为 *16.64px*，效果等同于 *32rpx*
 
+样式插件会保留基础样式，并仅合并样式表中数值最小的 *max-width* 媒体块。其他断点和打印样式不会参与渲染。
+
 ## design-width
 功能：启用 [adapt-px](#adapt-px) 时使用的设计稿宽度
 类型：*Number*
