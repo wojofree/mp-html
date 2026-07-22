@@ -179,6 +179,31 @@ console.log('11')
   expect(comp.data.nodes[0].attrs.style.includes('gap:24px')).toBe(false)
   expect(comp.data.nodes[0].attrs.style.includes('display:none')).toBe(false)
 
+  // :root token、分组标签和普通标签选择器
+  comp.instance.setContent(`<style>
+    :root {
+      --green:#0d6657;
+      --font-size:20px;
+      --space:18px;
+      --link:var(--green);
+      --fallback:var(--missing, 14px);
+    }
+    h1, h2, p, li, th, td, figcaption { overflow-wrap:anywhere; }
+    a { color:var(--link);text-decoration-thickness:1px;text-underline-offset:3px; }
+    a:hover { color:#084a40; }
+    .token-box { font-size:var(--font-size);padding:var(--space);line-height:var(--fallback); }
+  </style><div><h1>Title</h1><p>Paragraph</p><a href="https://example.com">Link</a><div class="token-box" style="margin:var(--space)">Tokens</div></div>`)
+  const tokenNodes = JSON.stringify(comp.data.nodes)
+  expect(tokenNodes.includes('overflow-wrap:anywhere')).toBe(true)
+  expect(tokenNodes.includes('color:#0d6657')).toBe(true)
+  expect(tokenNodes.includes('text-decoration-thickness:1px')).toBe(true)
+  expect(tokenNodes.includes('text-underline-offset:3px')).toBe(true)
+  expect(tokenNodes.includes('font-size:20px')).toBe(true)
+  expect(tokenNodes.includes('padding:18px')).toBe(true)
+  expect(tokenNodes.includes('margin:18px')).toBe(true)
+  expect(tokenNodes.includes('line-height:14px')).toBe(true)
+  expect(tokenNodes.includes('#084a40')).toBe(false)
+
   // 长内容测试
   let content = '<div>1</div>'.repeat(50) + '<div>'
   for (let i = 0; i < 50; i++) {

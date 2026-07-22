@@ -7,13 +7,14 @@ const Parser = require('./parser')
 
 function Style () {
   this.styles = []
+  this.parser = new Parser()
 }
 
 // #ifndef APP-PLUS-NVUE
 Style.prototype.onParse = function (node, vm) {
   // 获取样式
   if (node.name === 'style' && node.children.length && node.children[0].type === 'text') {
-    this.styles = this.styles.concat(new Parser().parse(node.children[0].text))
+    this.styles = this.styles.concat(this.parser.parse(node.children[0].text))
   } else if (node.name) {
     // 匹配样式（对非文本标签）
     // 存储不同优先级的样式 name < class < id < 后代
@@ -43,10 +44,11 @@ Style.prototype.onParse = function (node, vm) {
           res = 4
         }
         if (item.key || j < 0) {
+          const style = this.parser.resolve(item.style)
           // 添加伪类
           if (item.pseudo && node.children) {
             let text
-            item.style = item.style.replace(/content:([^;]+)/, (_, $1) => {
+            const pseudoStyle = style.replace(/content:([^;]+)/, (_, $1) => {
               text = $1.replace(/['"]/g, '')
                 // 处理 attr 函数
                 .replace(/attr\((.+?)\)/, (_, $1) => node.attrs[$1.trim()] || '')
@@ -57,7 +59,7 @@ Style.prototype.onParse = function (node, vm) {
             const pseudo = {
               name: 'span',
               attrs: {
-                style: item.style
+                style: pseudoStyle
               },
               children: [{
                 type: 'text',
@@ -70,14 +72,15 @@ Style.prototype.onParse = function (node, vm) {
               node.children.push(pseudo)
             }
           } else {
-            matched[res - 1] += item.style + (item.style[item.style.length - 1] === ';' ? '' : ';')
+            matched[res - 1] += style + (style[style.length - 1] === ';' ? '' : ';')
           }
         }
       }
     }
     matched = matched.join('')
-    if (matched.length > 2) {
-      node.attrs.style = matched + (node.attrs.style || '')
+    const style = matched + (node.attrs.style || '')
+    if (matched.length > 2 || style.includes('var(')) {
+      node.attrs.style = this.parser.resolve(style)
     }
   }
 }
