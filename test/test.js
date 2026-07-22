@@ -172,14 +172,20 @@ console.log('11')
     designWidth: 750
   })
   await simulate.sleep(50)
-  comp.instance.setContent('<style>.adapt-box{font-size:16px;line-height:24px;padding:32px;margin:20px;width:600px;border:1px solid;display:grid;grid-template-columns:220px minmax(0,1fr)}</style><div class="adapt-box"><span>adapt px</span></div>')
-  expect(comp.data.nodes[0].attrs.style.includes('font-size:16px')).toBe(true)
-  expect(comp.data.nodes[0].attrs.style.includes('line-height:24px')).toBe(true)
+  comp.instance.setContent('<style>.adapt-box{font-size:16px;line-height:24px;padding:32px;margin:20px;width:600px;border:1px solid;box-shadow:0 4px 20px #000;background-image:url(icon-32px.png);display:grid;grid-template-columns:220px minmax(0,1fr)}</style><div class="adapt-box"><span>adapt px</span></div>')
+  expect(comp.data.nodes[0].attrs.style.includes('font-size:8.832px')).toBe(true)
+  expect(comp.data.nodes[0].attrs.style.includes('line-height:13.248px')).toBe(true)
   expect(comp.data.nodes[0].attrs.style.includes('padding:17.664px')).toBe(true)
   expect(comp.data.nodes[0].attrs.style.includes('margin:11.04px')).toBe(true)
   expect(comp.data.nodes[0].attrs.style.includes('width:331.2px')).toBe(true)
-  expect(comp.data.nodes[0].attrs.style.includes('border:1px solid')).toBe(true)
+  expect(comp.data.nodes[0].attrs.style.includes('border:0.552px solid')).toBe(true)
+  expect(comp.data.nodes[0].attrs.style.includes('box-shadow:0 2.208px 11.04px #000')).toBe(true)
+  expect(comp.data.nodes[0].attrs.style.includes('icon-32px.png')).toBe(true)
   expect(comp.data.nodes[0].attrs.style.includes('grid-template-columns:121.44px minmax(0,1fr)')).toBe(true)
+
+  comp.instance.setContent('<div width="300" height="100">attribute size</div>')
+  expect(comp.data.nodes[0].attrs.style.includes('width:165.6px')).toBe(true)
+  expect(comp.data.nodes[0].attrs.style.includes('height:55.2px')).toBe(true)
 
   // 仅将最小 max-width 断点合并到基础样式
   comp.instance.setContent(`<style>

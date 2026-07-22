@@ -75,11 +75,11 @@ white-space: pre-line; /* 保留换行符 */
 ?> 如果需要多个视频同时播放的，请将此属性设置为 *false*  
 
 ## adapt-px
-功能：是否按 [design-width](#design-width) 将布局类 *px* 尺寸缩放到当前窗口
+功能：是否按 [design-width](#design-width) 将所有 CSS *px* 尺寸缩放到当前窗口
 类型：*Boolean*
 默认值：*false*
 
-开启后会缩放宽高、内外边距、间距、定位偏移、圆角、*flex-basis* 和 *grid* 轨道等布局属性。字体、行高和边框宽度保持不变。
+开启后会缩放所有 CSS 属性值中的 *px*，包括字体、行高、边框、阴影和布局尺寸。引号字符串、*url()* 内容和媒体查询断点不参与缩放。
 
 ?> 例如窗口宽度为 *390px*、*design-width* 为 *750* 时，*padding:32px* 会渲染为 *16.64px*，效果等同于 *32rpx*
 
