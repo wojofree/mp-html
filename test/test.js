@@ -164,19 +164,26 @@ console.log('11')
   simulate.sleep(50)
   comp.instance.setContent('<div style="color:green">Hello world!</div>') // 差量更新
 
-  // 仅将最小 max-width 断点合并到基础样式
+  // 按当前 414px 视口合并所有命中的断点，并保持源码层叠顺序
   comp.instance.setContent(`<style>
     .media-box { display:grid;grid-template-columns:300px 1fr;color:black;padding:10px; }
     @media (max-width: 900px) { .media-box { background:red;gap:24px; } }
     @media screen and (max-width: 560px) { .media-box { grid-template-columns:1fr;color:green; } }
+    @media screen and (min-width: 320px) and (max-width: 560px) { .media-box { border-width:2px; } }
+    @media screen and (max-width: 300px), screen and (min-width: 400px) and (max-width: 500px) { .media-box { border-style:solid; } }
+    @media (min-width: 600px) { .media-box { opacity:0.5; } }
     @media print { .media-box { display:none; } }
+    .media-box { color:blue; }
   </style><div class="media-box">mobile media</div>`)
   expect(comp.data.nodes[0].attrs.style.includes('display:grid')).toBe(true)
   expect(comp.data.nodes[0].attrs.style.includes('padding:10px')).toBe(true)
   expect(comp.data.nodes[0].attrs.style.includes('grid-template-columns:1fr')).toBe(true)
-  expect(comp.data.nodes[0].attrs.style.includes('color:green')).toBe(true)
-  expect(comp.data.nodes[0].attrs.style.includes('background:red')).toBe(false)
-  expect(comp.data.nodes[0].attrs.style.includes('gap:24px')).toBe(false)
+  expect(comp.data.nodes[0].attrs.style.includes('color:blue')).toBe(true)
+  expect(comp.data.nodes[0].attrs.style.includes('background:red')).toBe(true)
+  expect(comp.data.nodes[0].attrs.style.includes('gap:24px')).toBe(true)
+  expect(comp.data.nodes[0].attrs.style.includes('border-width:2px')).toBe(true)
+  expect(comp.data.nodes[0].attrs.style.includes('border-style:solid')).toBe(true)
+  expect(comp.data.nodes[0].attrs.style.includes('opacity:0.5')).toBe(false)
   expect(comp.data.nodes[0].attrs.style.includes('display:none')).toBe(false)
 
   // :root token、分组标签和普通标签选择器

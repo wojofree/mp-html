@@ -6,10 +6,11 @@ const blank = {
   '\f': true
 }
 
-function Parser () {
+function Parser (viewportWidth) {
   this.styles = []
   this.selectors = []
   this.variables = Object.create(null)
+  this.viewportWidth = viewportWidth === undefined ? getViewportWidth() : viewportWidth
 }
 
 /**
@@ -19,7 +20,7 @@ function Parser () {
 Parser.prototype.parse = function (content) {
   this.styles = []
   this.selectors = []
-  content = mergeSmallestMedia(content)
+  content = flattenMedia(content, this.viewportWidth)
   collectVariables(content, this.variables)
   new Lexer(this).parse(content)
   return this.styles
@@ -196,13 +197,13 @@ function splitVariable (content) {
 }
 
 /**
- * @description 保留基础样式，并仅合并最小的 max-width 断点
+ * @description 按当前视口展开命中的 media，保持原始层叠顺序
  * @param {string} content css 内容
+ * @param {number} viewportWidth 视口逻辑宽度
  * @returns {string} 合并后的 css
  */
-function mergeSmallestMedia (content) {
-  let base = ''
-  const media = []
+function flattenMedia (content, viewportWidth) {
+  let output = ''
   let start = 0
   let i = 0
   let quote
@@ -241,13 +242,9 @@ function mergeSmallestMedia (content) {
     if (content.substr(i, 6).toLowerCase() === '@media' && !/[\w-]/.test(content[i + 6] || '')) {
       const block = readMediaBlock(content, i + 6)
       if (block) {
-        base += content.substring(start, i)
-        const match = block.query.match(/max-width\s*:\s*(\d+(?:\.\d+)?)px/i)
-        if (match && !/\bprint\b/i.test(block.query)) {
-          media.push({
-            width: Number(match[1]),
-            content: block.content
-          })
+        output += content.substring(start, i)
+        if (matchesMediaQuery(block.query, viewportWidth)) {
+          output += flattenMedia(block.content, viewportWidth)
         }
         i = block.end
         start = i
@@ -257,17 +254,80 @@ function mergeSmallestMedia (content) {
     i++
   }
 
-  base += content.substring(start)
-  if (!media.length) return base
+  return output + content.substring(start)
+}
 
-  let width = media[0].width
-  for (i = 1; i < media.length; i++) {
-    if (media[i].width < width) width = media[i].width
+/**
+ * @description 判断 media 查询是否匹配当前视口
+ * @param {string} query media 查询
+ * @param {number} viewportWidth 视口逻辑宽度
+ * @returns {boolean} 是否匹配
+ */
+function matchesMediaQuery (query, viewportWidth) {
+  const queries = splitMediaQueries(query)
+  for (let i = 0; i < queries.length; i++) {
+    if (matchesSingleMediaQuery(queries[i], viewportWidth)) return true
   }
-  for (i = 0; i < media.length; i++) {
-    if (media[i].width === width) base += '\n' + media[i].content
+  return false
+}
+
+function splitMediaQueries (query) {
+  const list = []
+  let start = 0
+  let floor = 0
+  for (let i = 0; i <= query.length; i++) {
+    const c = query[i]
+    if (c === '(') floor++
+    else if (c === ')') floor--
+    else if ((c === ',' && !floor) || i === query.length) {
+      list.push(query.substring(start, i).trim())
+      start = i + 1
+    }
   }
-  return base
+  return list
+}
+
+function matchesSingleMediaQuery (query, viewportWidth) {
+  if (!query) return false
+  const normalized = query.toLowerCase().replace(/^only\s+/, '').trim()
+  if (/^print\b/.test(normalized) || /^not\s+screen\b/.test(normalized)) return false
+
+  const type = normalized.match(/^(?:not\s+)?([a-z-]+)/)
+  if (type && type[1] !== 'screen' && type[1] !== 'all' && type[1] !== 'and') return false
+
+  const features = []
+  normalized.replace(/\(([^()]*)\)/g, (_, feature) => {
+    features.push(feature.trim())
+    return ''
+  })
+  const remainder = normalized.replace(/\([^()]*\)/g, '')
+    .replace(/\b(?:only|screen|all|and)\b/g, '')
+    .trim()
+  if (remainder || !features.length) return false
+
+  for (let i = 0; i < features.length; i++) {
+    const match = features[i].match(/^(min|max)-width\s*:\s*(\d+(?:\.\d+)?)px$/)
+    if (!match) return false
+    const width = Number(match[2])
+    if (match[1] === 'min' && viewportWidth < width) return false
+    if (match[1] === 'max' && viewportWidth > width) return false
+  }
+  return true
+}
+
+function getViewportWidth () {
+  if (typeof wx !== 'undefined') {
+    if (wx.canIUse && wx.canIUse('getWindowInfo') && wx.getWindowInfo) {
+      return wx.getWindowInfo().windowWidth
+    }
+    if (wx.getSystemInfoSync) return wx.getSystemInfoSync().windowWidth
+  }
+  if (typeof uni !== 'undefined') {
+    if (uni.getWindowInfo) return uni.getWindowInfo().windowWidth
+    if (uni.getSystemInfoSync) return uni.getSystemInfoSync().windowWidth
+  }
+  if (typeof window !== 'undefined' && window.innerWidth) return window.innerWidth
+  return 375
 }
 
 /**
