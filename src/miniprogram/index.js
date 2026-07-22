@@ -77,6 +77,23 @@ Component({
     },
 
     /**
+     * @description 是否按设计宽度缩放布局类 px 尺寸
+     * @type {Boolean}
+     * @default false
+     */
+    adaptPx: Boolean,
+
+    /**
+     * @description px 布局的设计稿宽度
+     * @type {Number}
+     * @default 750
+     */
+    designWidth: {
+      type: Number,
+      value: 750
+    },
+
+    /**
      * @description 是否允许图片被点击时自动预览
      * @type {Boolean | String}
      * @default true

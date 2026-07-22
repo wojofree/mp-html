@@ -98,6 +98,23 @@ function makeMap (str) {
   return map
 }
 
+const adaptiveStyles = makeMap('width,height,min-width,max-width,min-height,max-height,padding,padding-top,padding-right,padding-bottom,padding-left,margin,margin-top,margin-right,margin-bottom,margin-left,gap,row-gap,column-gap,top,right,bottom,left,inset,inset-block,inset-inline,border-radius,background-size,background-position,transform,transform-origin,flex-basis,grid-template-columns,grid-template-rows,grid-auto-columns,grid-auto-rows')
+
+/**
+ * @description 按当前窗口和设计稿宽度缩放布局类 px 尺寸
+ * @param {String} value 样式值
+ * @param {Number} scale 缩放比例
+ * @returns {String}
+ */
+function adaptPxValue (value, scale) {
+  if (!value || scale === 1) return value
+  return value.replace(/(-?(?:\d+\.?\d*|\.\d+))px\b/gi, (_, size) => {
+    const result = parseFloat(size) * scale
+    if (!result) return '0'
+    return parseFloat(result.toFixed(3)) + 'px'
+  })
+}
+
 /**
  * @description 解码 html 实体
  * @param {String} str 要解码的字符串
@@ -266,6 +283,10 @@ Parser.prototype.parseStyle = function (node) {
     if (info.length < 2) continue
     const key = info.shift().trim().toLowerCase()
     let value = info.join(':').trim()
+    if (this.options.adaptPx && adaptiveStyles[key]) {
+      const designWidth = parseFloat(this.options.designWidth) || 750
+      value = adaptPxValue(value, windowWidth / designWidth)
+    }
     if ((value[0] === '-' && value.lastIndexOf('-') > 0) || value.includes('safe')) {
       // 兼容性的 css 不压缩
       tmp += `;${key}:${value}`

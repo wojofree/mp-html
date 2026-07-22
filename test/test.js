@@ -30,11 +30,13 @@ test('render', async () => {
       lazyLoad: true,
       pauseVideo: true,
       previewImg: true,
+      adaptPx: false,
+      designWidth: 750,
       useAnchor: true
     },
     template:
       `<scroll-view id="scroll" style="height:100px" scroll-y scroll-top="{{top}}">
-  <mp-html id="article" container-style="{{containerStyle}}" content="{{html}}" domain="https://mp-html.oss-cn-hangzhou.aliyuncs.com" copy-link="{{copyLink}}" loading-img="xxx" error-img="xxx" lazy-load="{{lazyLoad}}" pause-video="{{pauseVideo}}" preview-img="{{previewImg}}" scroll-table use-anchor="{{useAnchor}}">加载中...</mp-html>
+  <mp-html id="article" container-style="{{containerStyle}}" content="{{html}}" domain="https://mp-html.oss-cn-hangzhou.aliyuncs.com" copy-link="{{copyLink}}" loading-img="xxx" error-img="xxx" lazy-load="{{lazyLoad}}" pause-video="{{pauseVideo}}" preview-img="{{previewImg}}" adapt-px="{{adaptPx}}" design-width="{{designWidth}}" scroll-table use-anchor="{{useAnchor}}">加载中...</mp-html>
 </scroll-view>`,
     usingComponents: {
       'mp-html': mpHtml
@@ -163,6 +165,21 @@ console.log('11')
   comp.instance.setContent('<div style="color:red">Hello world!</div>')
   simulate.sleep(50)
   comp.instance.setContent('<div style="color:green">Hello world!</div>') // 差量更新
+
+  // 移动端布局 px 适配测试
+  page.setData({
+    adaptPx: true,
+    designWidth: 750
+  })
+  await simulate.sleep(50)
+  comp.instance.setContent('<style>.adapt-box{font-size:16px;line-height:24px;padding:32px;margin:20px;width:600px;border:1px solid;display:grid;grid-template-columns:220px minmax(0,1fr)}</style><div class="adapt-box"><span>adapt px</span></div>')
+  expect(comp.data.nodes[0].attrs.style.includes('font-size:16px')).toBe(true)
+  expect(comp.data.nodes[0].attrs.style.includes('line-height:24px')).toBe(true)
+  expect(comp.data.nodes[0].attrs.style.includes('padding:17.664px')).toBe(true)
+  expect(comp.data.nodes[0].attrs.style.includes('margin:11.04px')).toBe(true)
+  expect(comp.data.nodes[0].attrs.style.includes('width:331.2px')).toBe(true)
+  expect(comp.data.nodes[0].attrs.style.includes('border:1px solid')).toBe(true)
+  expect(comp.data.nodes[0].attrs.style.includes('grid-template-columns:121.44px minmax(0,1fr)')).toBe(true)
 
   // 长内容测试
   let content = '<div>1</div>'.repeat(50) + '<div>'
