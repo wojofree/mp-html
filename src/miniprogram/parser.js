@@ -99,56 +99,6 @@ function makeMap (str) {
 }
 
 /**
- * @description 按当前窗口和设计稿宽度缩放 css 中的 px 尺寸
- * @param {String} value 样式值
- * @param {Number} scale 缩放比例
- * @returns {String}
- */
-function adaptPxValue (value, scale) {
-  if (!value || scale === 1) return value
-  let output = ''
-  for (let i = 0; i < value.length;) {
-    const quote = value[i] === '"' || value[i] === "'" ? value[i] : undefined
-    const url = !quote && value.substr(i).match(/^url\s*\(/i)
-    if (quote || url) {
-      let end = quote ? i + 1 : i + url[0].length
-      let innerQuote
-      let floor = url ? 1 : 0
-      for (; end < value.length; end++) {
-        const char = value[end]
-        if (char === '\\') {
-          end++
-        } else if (innerQuote) {
-          if (char === innerQuote) innerQuote = undefined
-        } else if (url && (char === '"' || char === "'")) {
-          innerQuote = char
-        } else if (quote && char === quote) {
-          end++
-          break
-        } else if (url && char === '(') {
-          floor++
-        } else if (url && char === ')' && !--floor) {
-          end++
-          break
-        }
-      }
-      output += value.substring(i, end)
-      i = end
-      continue
-    }
-    const match = value.substr(i).match(/^(-?(?:\d+\.?\d*|\.\d+))px\b/i)
-    if (match) {
-      const result = parseFloat(match[1]) * scale
-      output += result ? parseFloat(result.toFixed(3)) + 'px' : '0'
-      i += match[0].length
-    } else {
-      output += value[i++]
-    }
-  }
-  return output
-}
-
-/**
  * @description 解码 html 实体
  * @param {String} str 要解码的字符串
  * @param {Boolean} amp 要不要解码 &amp;
@@ -291,8 +241,6 @@ Parser.prototype.parseStyle = function (node) {
   const list = (this.tagStyle[node.name] || '').split(';').concat((attrs.style || '').split(';'))
   const styleObj = {}
   let tmp = ''
-  const designWidth = parseFloat(this.options.designWidth) || 750
-  const adaptScale = this.options.adaptPx ? windowWidth / designWidth : 1
 
   if (attrs.id && !this.xml) {
     // 暴露锚点
@@ -305,11 +253,11 @@ Parser.prototype.parseStyle = function (node) {
 
   // 转换 width 和 height 属性
   if (attrs.width) {
-    styleObj.width = adaptPxValue(parseFloat(attrs.width) + (attrs.width.includes('%') ? '%' : 'px'), adaptScale)
+    styleObj.width = parseFloat(attrs.width) + (attrs.width.includes('%') ? '%' : 'px')
     attrs.width = undefined
   }
   if (attrs.height) {
-    styleObj.height = adaptPxValue(parseFloat(attrs.height) + (attrs.height.includes('%') ? '%' : 'px'), adaptScale)
+    styleObj.height = parseFloat(attrs.height) + (attrs.height.includes('%') ? '%' : 'px')
     attrs.height = undefined
   }
 
@@ -318,7 +266,6 @@ Parser.prototype.parseStyle = function (node) {
     if (info.length < 2) continue
     const key = info.shift().trim().toLowerCase()
     let value = info.join(':').trim()
-    value = adaptPxValue(value, adaptScale)
     if ((value[0] === '-' && value.lastIndexOf('-') > 0) || value.includes('safe')) {
       // 兼容性的 css 不压缩
       tmp += `;${key}:${value}`

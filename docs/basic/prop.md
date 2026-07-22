@@ -74,21 +74,7 @@ white-space: pre-line; /* 保留换行符 */
 
 ?> 如果需要多个视频同时播放的，请将此属性设置为 *false*  
 
-## adapt-px
-功能：是否按 [design-width](#design-width) 将所有 CSS *px* 尺寸缩放到当前窗口
-类型：*Boolean*
-默认值：*false*
-
-开启后会缩放所有 CSS 属性值中的 *px*，包括字体、行高、边框、阴影和布局尺寸。引号字符串、*url()* 内容和媒体查询断点不参与缩放。
-
-?> 例如窗口宽度为 *390px*、*design-width* 为 *750* 时，*padding:32px* 会渲染为 *16.64px*，效果等同于 *32rpx*
-
 样式插件会保留基础样式，并仅合并样式表中数值最小的 *max-width* 媒体块。其他断点和打印样式不会参与渲染。
-
-## design-width
-功能：启用 [adapt-px](#adapt-px) 时使用的设计稿宽度
-类型：*Number*
-默认值：*750*
 
 ## preview-img
 功能：是否允许图片被点击时自动预览  
