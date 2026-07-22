@@ -409,6 +409,18 @@ function readMediaBlock (content, start) {
  * @param {string} name 名称
  */
 Parser.prototype.onSelector = function (name) {
+  const pseudoElement = name.match(/::?(before|after)\s*$/i)
+  const staticPseudo = /:(?:first-child|last-child|only-child|nth-child|nth-last-child|first-of-type|last-of-type|only-of-type|nth-of-type|nth-last-of-type|not|is|where|empty|root)(?:\b|\()/i.test(name)
+  const dynamicPseudo = /:(?:hover|active|focus|focus-within|focus-visible|visited|link|target|checked|disabled|enabled|required|optional|valid|invalid|in-range|out-of-range|read-only|read-write|placeholder-shown)(?:\b|\()/i.test(name)
+  if (dynamicPseudo) return
+  if (pseudoElement || staticPseudo) {
+    this.selectors.push({
+      deferred: true,
+      pseudo: pseudoElement && pseudoElement[1].toLowerCase(),
+      raw: pseudoElement ? name.substring(0, pseudoElement.index).trim() : name.trim()
+    })
+    return
+  }
   // 不支持的选择器
   if (name.includes('[') || name.includes('*') || name.includes('@')) return
   const selector = {}
@@ -484,6 +496,7 @@ function Lexer (handler) {
   this.selector = ''
   this.style = ''
   this.handler = handler
+  this.selectorFloor = 0
 }
 
 Lexer.prototype.parse = function (content) {
@@ -518,7 +531,9 @@ Lexer.prototype.name = function (c) {
     this.comment()
     return
   }
-  if (c === '{' || c === ',' || c === ';') {
+  if (c === '(' || c === '[') this.selectorFloor++
+  else if (c === ')' || c === ']') this.selectorFloor--
+  if (c === '{' || (c === ',' && !this.selectorFloor) || c === ';') {
     this.handler.onSelector(this.selector.trimEnd())
     this.selector = ''
     if (c !== '{') {

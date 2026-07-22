@@ -181,6 +181,11 @@ Parser.prototype.parse = function (content) {
   while (this.stack.length) {
     this.popNode()
   }
+  for (let i = this.plugins.length; i--;) {
+    if (this.plugins[i].onParsed) {
+      this.plugins[i].onParsed(this.nodes, this)
+    }
+  }
   if (this.nodes.length > 50) {
     mergeNodes(this.nodes)
   }

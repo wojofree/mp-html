@@ -186,6 +186,45 @@ console.log('11')
   expect(comp.data.nodes[0].attrs.style.includes('opacity:0.5')).toBe(false)
   expect(comp.data.nodes[0].attrs.style.includes('display:none')).toBe(false)
 
+  // 完整树生成后计算结构伪类，并将同一个 before / after 合并为一个实体节点
+  comp.instance.setContent(`<style>
+    .chain { counter-reset:evidence; }
+    .chain li { counter-increment:evidence;position:relative; }
+    .chain li::before { content:counter(evidence, decimal-leading-zero);color:red; }
+    .chain li:not(:last-child)::after { content:"";position:absolute;width:1px; }
+    .chain li:nth-child(2) { font-weight:700; }
+    .chain li:last-child { border-bottom:0; }
+    .label::before { content:attr(title) " "; }
+    .step::after { content:"→";color:red; }
+    @media(max-width:560px) {
+      .chain li::before { color:blue; }
+      .step::after { display:none!important; }
+    }
+    .chain li:hover::before { color:black; }
+  </style>
+  <ol class="chain"><li>First</li><li>Second</li></ol>
+  <p class="label" title="Note">Body</p><div class="step">Step</div>`)
+  const elements = []
+  const collectElements = nodes => (nodes || []).forEach(node => {
+    if (node.name) elements.push(node)
+    collectElements(node.children)
+  })
+  collectElements(comp.data.nodes)
+  const listItems = elements.filter(node => node.name === 'li')
+  expect(listItems.length).toBe(2)
+  expect(listItems[0].children[0].children[0].text).toBe('01')
+  expect(listItems[1].children[0].children[0].text).toBe('02')
+  expect(listItems[0].children[0].attrs.style.includes('color:blue')).toBe(true)
+  expect(listItems[0].children[0].attrs.style.includes('color:black')).toBe(false)
+  expect(listItems[0].children.filter(node => node.name === 'span').length).toBe(2)
+  expect(listItems[1].children.filter(node => node.name === 'span').length).toBe(1)
+  expect(listItems[1].attrs.style.includes('font-weight:700')).toBe(true)
+  expect(listItems[1].attrs.style.includes('border-bottom:0')).toBe(true)
+  const label = elements.find(node => (node.attrs.class || '').includes('label'))
+  expect(label.children[0].children[0].text).toBe('Note')
+  const step = elements.find(node => (node.attrs.class || '').includes('step'))
+  expect(step.children.some(node => node.name === 'span')).toBe(false)
+
   // :root token、分组标签和普通标签选择器
   comp.instance.setContent(`<style>
     :root {
